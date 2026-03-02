@@ -1,0 +1,26 @@
+import type { Metadata, Viewport } from "next";
+import "./globals.css";
+
+export const metadata: Metadata = {
+  title: "AI Drink - Đồ Uống Cá Nhân Hóa",
+  description:
+    "Hệ thống đặt đồ uống cá nhân hóa theo tâm trạng - Personalized Drink Ordering System",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+};
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <html lang="vi">
+      <body className="min-h-screen">{children}</body>
+    </html>
+  );
+}

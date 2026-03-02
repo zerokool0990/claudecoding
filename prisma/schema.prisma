@@ -1,0 +1,112 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Customer {
+  id               String   @id @default(uuid())
+  name             String?
+  dob              DateTime?
+  zodiacSign       String?  @map("zodiac_sign")
+  savedPreferences String?  @map("saved_preferences") // JSON string
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  orders           Order[]
+
+  @@map("customers")
+}
+
+model Question {
+  id           String @id @default(uuid())
+  stepNumber   Int    @map("step_number") // 1-5
+  themeId      String @map("theme_id") // e.g., "music", "weather", "os"
+  questionText String @map("question_text")
+  answers      String // JSON: [{label, value, logicMapping}]
+
+  @@map("questions")
+}
+
+model Module {
+  id            String  @id @default(uuid())
+  category      String  // BASE, FLAVOR, FUNCTION, TEXTURE
+  name          String
+  nameVi        String  @map("name_vi") // Vietnamese display name
+  stockQuantity Float   @default(10000) @map("stock_quantity")
+  unit          String  @default("ml")
+  deductionRate Float   @map("deduction_rate") // amount per drink
+  alertThreshold Float  @default(500) @map("alert_threshold")
+  isActive      Boolean @default(true) @map("is_active")
+  costPerUnit   Float   @default(0) @map("cost_per_unit")
+
+  exclusionsAs1 ExclusionRule[] @relation("module1")
+  exclusionsAs2 ExclusionRule[] @relation("module2")
+  orderItemsBase     OrderItem[] @relation("baseModule")
+  orderItemsFlavor   OrderItem[] @relation("flavorModule")
+  orderItemsFunction OrderItem[] @relation("functionModule")
+  orderItemsTexture  OrderItem[] @relation("textureModule")
+
+  @@map("modules")
+}
+
+model ExclusionRule {
+  id        String @id @default(uuid())
+  module1Id String @map("module_1_id")
+  module2Id String @map("module_2_id")
+  reason    String
+
+  module1 Module @relation("module1", fields: [module1Id], references: [id])
+  module2 Module @relation("module2", fields: [module2Id], references: [id])
+
+  @@map("exclusion_rules")
+}
+
+model Order {
+  id         String   @id @default(uuid())
+  customerId String?  @map("customer_id")
+  totalPrice Float    @default(0) @map("total_price")
+  status     String   @default("PENDING") // PENDING, PREPARING, COMPLETED, CANCELLED
+  moodTags   String?  @map("mood_tags") // JSON
+  cardChosen String?  @map("card_chosen") // PERFECT_MATCH, PLOT_TWIST, SAFE_TREND
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  customer Customer?   @relation(fields: [customerId], references: [id])
+  items    OrderItem[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id              String @id @default(uuid())
+  orderId         String @map("order_id")
+  generatedName   String @map("generated_name")
+  generatedNameVi String @map("generated_name_vi")
+  baseModuleId    String @map("base_module_id")
+  flavorModuleId  String @map("flavor_module_id")
+  functionModuleId String @map("function_module_id")
+  textureModuleId String @map("texture_module_id")
+  recipe          String @default("") // JSON: assembly instructions
+
+  order          Order  @relation(fields: [orderId], references: [id])
+  baseModule     Module @relation("baseModule", fields: [baseModuleId], references: [id])
+  flavorModule   Module @relation("flavorModule", fields: [flavorModuleId], references: [id])
+  functionModule Module @relation("functionModule", fields: [functionModuleId], references: [id])
+  textureModule  Module @relation("textureModule", fields: [textureModuleId], references: [id])
+
+  @@map("order_items")
+}
+
+model InventoryLog {
+  id         String   @id @default(uuid())
+  moduleId   String   @map("module_id")
+  type       String   // IMPORT, DEDUCTION, ADJUSTMENT
+  quantity   Float
+  note       String?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("inventory_logs")
+}
