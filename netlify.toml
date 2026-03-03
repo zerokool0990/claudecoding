@@ -4,7 +4,10 @@
 
 [build.environment]
   DATABASE_URL = "file:./prisma/dev.db"
-  NEXT_PRIVATE_STANDALONE = "true"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
+
+[functions]
+  included_files = ["prisma/dev.db", "node_modules/.prisma/**"]
+  node_bundler = "nft"
