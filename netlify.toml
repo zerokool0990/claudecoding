@@ -1,0 +1,10 @@
+[build]
+  command = "npx prisma generate && npx prisma db push && npx tsx prisma/seed.ts && npm run build"
+  publish = ".next"
+
+[build.environment]
+  DATABASE_URL = "file:./prisma/dev.db"
+  NEXT_PRIVATE_STANDALONE = "true"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
