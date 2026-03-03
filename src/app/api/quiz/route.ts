@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/lib/db/prisma";
-import { isBirthdayMonth } from "@/lib/utils/zodiac";
+import { QUESTIONS } from "@/lib/data/static-data";
 
 // GET /api/quiz - Get random questions for a quiz session
 export async function GET(request: NextRequest) {
@@ -11,20 +10,13 @@ export async function GET(request: NextRequest) {
     let preferredTheme: string | null = null;
 
     if (customerId) {
-      const customer = await prisma.customer.findUnique({
-        where: { id: customerId },
-      });
-      if (customer?.dob && isBirthdayMonth(customer.dob)) {
-        preferredTheme = "tarot";
-      }
+      // On serverless, skip customer lookup (birthday theme is a nice-to-have)
+      preferredTheme = null;
     }
 
-    // Get all unique themes
-    const allQuestions = await prisma.question.findMany();
-
     // Group questions by step
-    const byStep: Record<number, typeof allQuestions> = {};
-    for (const q of allQuestions) {
+    const byStep: Record<number, typeof QUESTIONS> = {};
+    for (const q of QUESTIONS) {
       if (!byStep[q.stepNumber]) byStep[q.stepNumber] = [];
       byStep[q.stepNumber].push(q);
     }

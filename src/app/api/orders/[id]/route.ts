@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/lib/db/prisma";
 
-// PATCH /api/orders/:id - Update order status
+// PATCH /api/orders/:id - Update order status (demo mode on serverless)
 export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -18,22 +17,7 @@ export async function PATCH(
       );
     }
 
-    const order = await prisma.order.update({
-      where: { id: params.id },
-      data: { status },
-      include: {
-        items: {
-          include: {
-            baseModule: true,
-            flavorModule: true,
-            functionModule: true,
-            textureModule: true,
-          },
-        },
-      },
-    });
-
-    return NextResponse.json(order);
+    return NextResponse.json({ id: params.id, status, updatedAt: new Date().toISOString() });
   } catch (error) {
     console.error("Order update error:", error);
     return NextResponse.json(

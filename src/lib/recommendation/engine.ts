@@ -1,4 +1,4 @@
-import prisma from "@/lib/db/prisma";
+import { MODULES, EXCLUSION_RULES } from "@/lib/data/static-data";
 import type { DrinkCombo, QuizAnswers, RecommendationResult, RecipeStep, ModuleData } from "@/types";
 
 interface ModuleRow {
@@ -128,14 +128,11 @@ const ANSWER_MAP: Record<number, Record<string, string>> = {
 
 export async function getRecommendations(
   answers: QuizAnswers,
-  customerId?: string
+  _customerId?: string
 ): Promise<RecommendationResult> {
-  // Load all active modules with sufficient stock
-  const allModules = await prisma.module.findMany({
-    where: { isActive: true },
-  });
-
-  const exclusions = await prisma.exclusionRule.findMany();
+  // Use static data - works on any platform including serverless
+  const allModules: ModuleRow[] = MODULES.filter((m) => m.isActive);
+  const exclusions: ExclusionRow[] = EXCLUSION_RULES;
 
   // Map answers to module selections
   const baseId = ANSWER_MAP[1][answers.step1];
@@ -232,47 +229,6 @@ export async function getRecommendations(
   };
 
   // === Card 3: Safe Trend - bestseller with same base ===
-  let safeTrend: DrinkCombo;
-
-  if (customerId) {
-    // For returning customers, suggest their last order
-    const lastOrder = await prisma.orderItem.findFirst({
-      where: { order: { customerId, status: "COMPLETED" } },
-      include: {
-        baseModule: true,
-        flavorModule: true,
-        functionModule: true,
-        textureModule: true,
-      },
-      orderBy: { order: { createdAt: "desc" } },
-    });
-
-    if (lastOrder) {
-      const safeNames = generateDrinkName(
-        lastOrder.baseModule,
-        lastOrder.flavorModule,
-        lastOrder.functionModule,
-        lastOrder.textureModule
-      );
-      safeTrend = {
-        base: toModuleData(lastOrder.baseModule),
-        flavor: toModuleData(lastOrder.flavorModule),
-        function: toModuleData(lastOrder.functionModule),
-        texture: toModuleData(lastOrder.textureModule),
-        generatedName: safeNames.name,
-        generatedNameVi: `${safeNames.nameVi} (Món quen của bạn)`,
-        recipe: generateRecipe(
-          lastOrder.baseModule,
-          lastOrder.flavorModule,
-          lastOrder.functionModule,
-          lastOrder.textureModule
-        ),
-      };
-      return { perfectMatch, plotTwist, safeTrend };
-    }
-  }
-
-  // Default: best-seller combo with same base
   const safeFlavor = allModules.find(
     (m) =>
       m.category === "FLAVOR" &&
@@ -297,7 +253,7 @@ export async function getRecommendations(
   ) || func;
 
   const safeNames = generateDrinkName(base, safeFlavor, safeFunc, safeTexture);
-  safeTrend = {
+  const safeTrend: DrinkCombo = {
     base: toModuleData(base),
     flavor: toModuleData(safeFlavor),
     function: toModuleData(safeFunc),

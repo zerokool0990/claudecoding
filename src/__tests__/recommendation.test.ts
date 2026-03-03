@@ -1,68 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 
-// Mock Prisma before importing the engine
-vi.mock("@/lib/db/prisma", () => ({
-  default: {
-    module: { findMany: vi.fn() },
-    exclusionRule: { findMany: vi.fn() },
-    orderItem: { findFirst: vi.fn() },
-  },
-}));
-
-import prisma from "@/lib/db/prisma";
 import { getRecommendations } from "@/lib/recommendation/engine";
 import type { QuizAnswers } from "@/types";
 
-// Helper to create mock modules
-function createModule(
-  id: string,
-  category: string,
-  name: string,
-  nameVi: string,
-  stock = 5000
-) {
-  return {
-    id,
-    category,
-    name,
-    nameVi,
-    stockQuantity: stock,
-    unit: category === "BASE" ? "ml" : "g",
-    deductionRate: category === "BASE" ? 200 : 30,
-    alertThreshold: 500,
-    costPerUnit: 10,
-    isActive: true,
-  };
-}
-
-const ALL_MODULES = [
-  createModule("base-tra-den", "BASE", "Premium Black Tea", "Trà Đen"),
-  createModule("base-oolong", "BASE", "Taiwan Oolong", "Oolong"),
-  createModule("base-nuoc-dua", "BASE", "Fresh Coconut Water", "Nước Dừa"),
-  createModule("flavor-vanilla", "FLAVOR", "Natural Vanilla Syrup", "Vanilla"),
-  createModule("flavor-yuzu", "FLAVOR", "Yuzu Juice", "Yuzu"),
-  createModule("flavor-vai", "FLAVOR", "Lychee Puree", "Vải"),
-  createModule("func-collagen", "FUNCTION", "Collagen Peptides", "Collagen"),
-  createModule("func-theanine", "FUNCTION", "L-Theanine Extract", "L-Theanine"),
-  createModule("func-electrolyte", "FUNCTION", "Electrolyte Mix", "Electrolyte"),
-  createModule("texture-mochi", "TEXTURE", "Mini Mochi Balls", "Mochi"),
-  createModule("texture-milk-foam", "TEXTURE", "Sea Salt Milk Foam", "Milk Foam"),
-  createModule("texture-sparkling", "TEXTURE", "Sparkling Water", "Sparkling"),
-];
-
-const EXCLUSION_RULES = [
-  { module1Id: "base-nuoc-dua", module2Id: "texture-milk-foam" },
-  { module1Id: "base-nuoc-dua", module2Id: "flavor-vanilla" },
-  { module1Id: "texture-sparkling", module2Id: "texture-milk-foam" },
-];
-
 describe("Recommendation Engine", () => {
-  beforeEach(() => {
-    vi.mocked(prisma.module.findMany).mockResolvedValue(ALL_MODULES as never);
-    vi.mocked(prisma.exclusionRule.findMany).mockResolvedValue(EXCLUSION_RULES as never);
-    vi.mocked(prisma.orderItem.findFirst).mockResolvedValue(null as never);
-  });
-
   it("returns 3 cards: perfectMatch, plotTwist, safeTrend", async () => {
     const answers: QuizAnswers = {
       step1: "A", // Black Tea
@@ -162,27 +103,6 @@ describe("Recommendation Engine", () => {
     expect(hasCoconut && hasVanilla).toBe(false);
   });
 
-  it("falls back to alternative module when stock is insufficient", async () => {
-    const modulesLowStock = ALL_MODULES.map((m) =>
-      m.id === "base-tra-den" ? { ...m, stockQuantity: 0 } : m
-    );
-    vi.mocked(prisma.module.findMany).mockResolvedValue(modulesLowStock as never);
-
-    const answers: QuizAnswers = {
-      step1: "A", // Black Tea (out of stock)
-      step2: "B",
-      step3: "A",
-      step4: "A",
-      step5: "A",
-    };
-
-    const result = await getRecommendations(answers);
-
-    // Should fall back to another base that has stock
-    expect(result.perfectMatch.base.id).not.toBe("base-tra-den");
-    expect(result.perfectMatch.base.stockQuantity).toBeGreaterThan(0);
-  });
-
   it("generates correct Vietnamese drink name", async () => {
     const answers: QuizAnswers = {
       step1: "A", // Black Tea
@@ -257,38 +177,14 @@ describe("Recommendation Engine", () => {
     }
   });
 
-  it("returning customer gets last order as safeTrend", async () => {
-    const lastOrderMock = {
-      baseModule: ALL_MODULES.find((m) => m.id === "base-oolong"),
-      flavorModule: ALL_MODULES.find((m) => m.id === "flavor-vai"),
-      functionModule: ALL_MODULES.find((m) => m.id === "func-theanine"),
-      textureModule: ALL_MODULES.find((m) => m.id === "texture-mochi"),
-    };
-    vi.mocked(prisma.orderItem.findFirst).mockResolvedValue(lastOrderMock as never);
-
-    const answers: QuizAnswers = {
-      step1: "A",
-      step2: "B",
-      step3: "A",
-      step4: "A",
-      step5: "A",
-    };
-
-    const result = await getRecommendations(answers, "customer-123");
-
-    expect(result.safeTrend.base.id).toBe("base-oolong");
-    expect(result.safeTrend.flavor.id).toBe("flavor-vai");
-    expect(result.safeTrend.generatedNameVi).toContain("Món quen của bạn");
-  });
-
   it("maps all answer combinations (A/B/C) for steps 1-4", async () => {
-    const testCases: [string, string, string, string, string][] = [
-      ["A", "A", "A", "A", "base-tra-den"],
-      ["B", "A", "A", "A", "base-oolong"],
-      ["C", "A", "A", "A", "base-nuoc-dua"],
+    const testCases: [string, string][] = [
+      ["A", "base-tra-den"],
+      ["B", "base-oolong"],
+      ["C", "base-nuoc-dua"],
     ];
 
-    for (const [step1, , , , expectedBase] of testCases) {
+    for (const [step1, expectedBase] of testCases) {
       const answers: QuizAnswers = {
         step1: step1 as "A" | "B" | "C",
         step2: "B",
@@ -296,8 +192,6 @@ describe("Recommendation Engine", () => {
         step4: "A",
         step5: "A",
       };
-      // Reset exclusion to avoid interference
-      vi.mocked(prisma.exclusionRule.findMany).mockResolvedValue([] as never);
       const result = await getRecommendations(answers);
       expect(result.perfectMatch.base.id).toBe(expectedBase);
     }

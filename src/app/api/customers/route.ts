@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/lib/db/prisma";
 import { getZodiacSign } from "@/lib/utils/zodiac";
+import { v4 as uuidv4 } from "uuid";
 
-// POST /api/customers - Create or update customer profile
+// POST /api/customers - Create customer profile (demo mode on serverless)
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -11,13 +11,16 @@ export async function POST(request: NextRequest) {
     const dobDate = dob ? new Date(dob) : undefined;
     const zodiacSign = dobDate ? getZodiacSign(dobDate) : undefined;
 
-    const customer = await prisma.customer.create({
-      data: {
-        name: name || null,
-        dob: dobDate || null,
-        zodiacSign: zodiacSign || null,
-      },
-    });
+    // Return simulated customer (no persistent storage on serverless)
+    const customer = {
+      id: uuidv4(),
+      name: name || null,
+      dob: dobDate?.toISOString() || null,
+      zodiacSign: zodiacSign || null,
+      savedPreferences: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
 
     return NextResponse.json(customer);
   } catch (error) {
@@ -32,13 +35,7 @@ export async function POST(request: NextRequest) {
 // GET /api/customers - List customers
 export async function GET() {
   try {
-    const customers = await prisma.customer.findMany({
-      include: { _count: { select: { orders: true } } },
-      orderBy: { createdAt: "desc" },
-      take: 100,
-    });
-
-    return NextResponse.json(customers);
+    return NextResponse.json([]);
   } catch (error) {
     console.error("Customers GET error:", error);
     return NextResponse.json(

@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/lib/db/prisma";
-import { importInventory } from "@/lib/inventory/deduction";
+import { MODULES } from "@/lib/data/static-data";
 
 // GET /api/modules - Get all modules with stock info
 export async function GET() {
   try {
-    const modules = await prisma.module.findMany({
-      orderBy: [{ category: "asc" }, { name: "asc" }],
+    const modules = [...MODULES].sort((a, b) => {
+      const catCmp = a.category.localeCompare(b.category);
+      return catCmp !== 0 ? catCmp : a.name.localeCompare(b.name);
     });
 
     return NextResponse.json(modules);
@@ -20,29 +20,18 @@ export async function GET() {
 }
 
 // PATCH /api/modules - Update module stock (import)
+// Note: Write operations are not supported on serverless (read-only demo)
 export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json();
-    const { moduleId, quantity, note } = body as {
-      moduleId: string;
-      quantity: number;
-      note?: string;
-    };
+    const { moduleId } = body as { moduleId: string };
 
-    const success = await importInventory(moduleId, quantity, note);
-
-    if (!success) {
-      return NextResponse.json(
-        { error: "Failed to import inventory" },
-        { status: 500 }
-      );
+    const mod = MODULES.find((m) => m.id === moduleId);
+    if (!mod) {
+      return NextResponse.json({ error: "Module not found" }, { status: 404 });
     }
 
-    const updated = await prisma.module.findUnique({
-      where: { id: moduleId },
-    });
-
-    return NextResponse.json(updated);
+    return NextResponse.json(mod);
   } catch (error) {
     console.error("Module update error:", error);
     return NextResponse.json(
