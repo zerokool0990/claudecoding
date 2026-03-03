@@ -18,6 +18,7 @@ export default function ResultsPage() {
   const [showProfile, setShowProfile] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [orderId, setOrderId] = useState<string | null>(null);
   const [pendingCard, setPendingCard] = useState<{
     type: CardType;
     drink: DrinkCombo;
@@ -56,7 +57,7 @@ export default function ResultsPage() {
     setIsSubmitting(true);
 
     try {
-      await fetch("/api/orders", {
+      const res = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -66,6 +67,8 @@ export default function ResultsPage() {
           moodTags,
         }),
       });
+      const data = await res.json();
+      setOrderId(data.order?.id || null);
       setOrderPlaced(true);
     } catch (error) {
       console.error("Order failed:", error);
@@ -131,7 +134,7 @@ export default function ResultsPage() {
           <div className="bg-white/20 rounded-2xl p-6 backdrop-blur-sm max-w-sm mx-auto mb-8">
             <p className="text-white/70 text-sm mb-2">Mã đơn hàng</p>
             <p className="text-white text-2xl font-mono font-bold">
-              #{Math.random().toString(36).substring(2, 8).toUpperCase()}
+              #{orderId ? orderId.substring(0, 8).toUpperCase() : "---"}
             </p>
           </div>
 
