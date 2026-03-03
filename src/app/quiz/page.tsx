@@ -36,8 +36,15 @@ export default function QuizPage() {
     setLoading(true);
     try {
       const res = await fetch("/api/quiz");
+      if (!res.ok) {
+        throw new Error(`API error: ${res.status}`);
+      }
       const data = await res.json();
-      setQuestions(data.questions);
+      if (Array.isArray(data.questions)) {
+        setQuestions(data.questions);
+      } else {
+        console.error("Invalid questions data:", data);
+      }
     } catch (error) {
       console.error("Failed to load questions:", error);
     } finally {
@@ -49,7 +56,7 @@ export default function QuizPage() {
     async (value: AnswerValue) => {
       setAnswer(currentStep, value);
 
-      const currentQuestion = questions.find(
+      const currentQuestion = questions?.find(
         (q) => q.stepNumber === currentStep
       );
       if (currentQuestion) {
@@ -103,9 +110,9 @@ export default function QuizPage() {
     [currentStep, questions, answers, nextStep, setAnswer, addMoodTag, setLoading, setRecommendations, router]
   );
 
-  const currentQuestion = questions.find((q) => q.stepNumber === currentStep);
+  const currentQuestion = questions?.find((q) => q.stepNumber === currentStep);
 
-  if (isLoading && questions.length === 0) {
+  if (isLoading && (!questions || questions.length === 0)) {
     return (
       <div className="min-h-screen gradient-brand flex items-center justify-center">
         <motion.div

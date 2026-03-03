@@ -65,6 +65,7 @@ export const useQuizStore = create<QuizState>((set) => ({
     set({
       currentStep: 1,
       answers: {},
+      questions: [],
       recommendations: null,
       selectedCard: null,
       selectedDrink: null,
