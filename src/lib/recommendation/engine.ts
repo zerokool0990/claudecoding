@@ -128,7 +128,7 @@ const ANSWER_MAP: Record<number, Record<string, string>> = {
 
 export async function getRecommendations(
   answers: QuizAnswers,
-  _customerId?: string
+  customerId?: string
 ): Promise<RecommendationResult> {
   // Use static data - works on any platform including serverless
   const allModules: ModuleRow[] = MODULES.filter((m) => m.isActive);
@@ -228,40 +228,127 @@ export async function getRecommendations(
     recipe: generateRecipe(base, altFlavorForTwist, func, texture),
   };
 
-  // === Card 3: Safe Trend - bestseller with same base ===
-  const safeFlavor = allModules.find(
-    (m) =>
-      m.category === "FLAVOR" &&
-      m.name === "Natural Vanilla Syrup" &&
-      m.stockQuantity >= m.deductionRate &&
-      !isExcluded([base, m, func, texture], exclusions)
-  ) || flavor;
+  // === Card 3: Safe Trend - returning customer OR bestseller ===
+  let safeTrend: DrinkCombo | null = null;
 
-  const safeTexture = allModules.find(
-    (m) =>
-      m.category === "TEXTURE" &&
-      m.name === "Sea Salt Milk Foam" &&
-      m.stockQuantity >= m.deductionRate &&
-      !isExcluded([base, safeFlavor, func, m], exclusions)
-  ) || texture;
+  // Check returning customer history (dynamic import keeps engine testable without DB)
+  if (customerId) {
+    try {
+      const { default: prisma } = await import("@/lib/db/prisma");
+      const pastItems = await prisma.orderItem.findMany({
+        where: {
+          order: {
+            customerId,
+            status: "COMPLETED",
+          },
+        },
+        include: {
+          baseModule: true,
+          flavorModule: true,
+          functionModule: true,
+          textureModule: true,
+        },
+        orderBy: { id: "desc" },
+        take: 20,
+      });
 
-  const safeFunc = allModules.find(
-    (m) =>
-      m.category === "FUNCTION" &&
-      m.name === "L-Theanine Extract" &&
-      m.stockQuantity >= m.deductionRate
-  ) || func;
+      if (pastItems.length > 0) {
+        // Find most-ordered combo
+        const comboCount = new Map<
+          string,
+          { count: number; item: typeof pastItems[0] }
+        >();
+        for (const item of pastItems) {
+          const key = `${item.baseModuleId}|${item.flavorModuleId}|${item.functionModuleId}|${item.textureModuleId}`;
+          const existing = comboCount.get(key);
+          if (existing) {
+            existing.count++;
+          } else {
+            comboCount.set(key, { count: 1, item });
+          }
+        }
 
-  const safeNames = generateDrinkName(base, safeFlavor, safeFunc, safeTexture);
-  const safeTrend: DrinkCombo = {
-    base: toModuleData(base),
-    flavor: toModuleData(safeFlavor),
-    function: toModuleData(safeFunc),
-    texture: toModuleData(safeTexture),
-    generatedName: safeNames.name,
-    generatedNameVi: safeNames.nameVi,
-    recipe: generateRecipe(base, safeFlavor, safeFunc, safeTexture),
-  };
+        const bestCombo = Array.from(comboCount.values()).sort(
+          (a, b) => b.count - a.count
+        )[0];
+        const { item } = bestCombo;
+
+        // Verify all modules are still active and in stock
+        const mods = [
+          item.baseModule,
+          item.flavorModule,
+          item.functionModule,
+          item.textureModule,
+        ];
+        const allActive = mods.every(
+          (m) => m.isActive && m.stockQuantity >= m.deductionRate
+        );
+
+        if (allActive) {
+          const returningNames = generateDrinkName(
+            item.baseModule,
+            item.flavorModule,
+            item.functionModule,
+            item.textureModule
+          );
+          safeTrend = {
+            base: toModuleData(item.baseModule),
+            flavor: toModuleData(item.flavorModule),
+            function: toModuleData(item.functionModule),
+            texture: toModuleData(item.textureModule),
+            generatedName: returningNames.name,
+            generatedNameVi: returningNames.nameVi + " (Quen thuộc)",
+            recipe: generateRecipe(
+              item.baseModule,
+              item.flavorModule,
+              item.functionModule,
+              item.textureModule
+            ),
+          };
+        }
+      }
+    } catch {
+      // Non-critical: fall back to bestseller if DB lookup fails
+      safeTrend = null;
+    }
+  }
+
+  // Fallback: bestseller with same base
+  if (!safeTrend) {
+    const safeFlavor = allModules.find(
+      (m) =>
+        m.category === "FLAVOR" &&
+        m.name === "Natural Vanilla Syrup" &&
+        m.stockQuantity >= m.deductionRate &&
+        !isExcluded([base, m, func, texture], exclusions)
+    ) || flavor;
+
+    const safeTexture = allModules.find(
+      (m) =>
+        m.category === "TEXTURE" &&
+        m.name === "Sea Salt Milk Foam" &&
+        m.stockQuantity >= m.deductionRate &&
+        !isExcluded([base, safeFlavor, func, m], exclusions)
+    ) || texture;
+
+    const safeFunc = allModules.find(
+      (m) =>
+        m.category === "FUNCTION" &&
+        m.name === "L-Theanine Extract" &&
+        m.stockQuantity >= m.deductionRate
+    ) || func;
+
+    const safeNames = generateDrinkName(base, safeFlavor, safeFunc, safeTexture);
+    safeTrend = {
+      base: toModuleData(base),
+      flavor: toModuleData(safeFlavor),
+      function: toModuleData(safeFunc),
+      texture: toModuleData(safeTexture),
+      generatedName: safeNames.name,
+      generatedNameVi: safeNames.nameVi,
+      recipe: generateRecipe(base, safeFlavor, safeFunc, safeTexture),
+    };
+  }
 
   return { perfectMatch, plotTwist, safeTrend };
 }

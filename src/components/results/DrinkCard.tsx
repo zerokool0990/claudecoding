@@ -1,8 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
-import type { DrinkCombo, CardType } from "@/types";
 import { Sparkles, Shuffle, Shield } from "lucide-react";
+import type { DrinkCombo, CardType } from "@/types";
 
 interface DrinkCardProps {
   drink: DrinkCombo;
@@ -13,33 +13,37 @@ interface DrinkCardProps {
 
 const CARD_CONFIG = {
   PERFECT_MATCH: {
-    title: "The Perfect Match",
-    subtitle: "Đồng điệu hoàn hảo",
+    label: "👑 Đồng Điệu Hoàn Hảo",
     icon: Sparkles,
-    gradient: "from-violet-500 to-purple-600",
-    bgGradient: "from-violet-50 to-purple-50",
-    borderColor: "border-violet-200",
-    badge: "👑 100% Match",
+    gradient: "from-[#8b5cf6] to-[#ec4899]",
+    badgeBg: "#ede9fe",
+    badgeText: "#8b5cf6",
+    shadowClass: "shadow-lavender",
   },
   PLOT_TWIST: {
-    title: "The Plot Twist",
-    subtitle: "Cú lật bất ngờ",
+    label: "🎲 Cú Lật Bất Ngờ",
     icon: Shuffle,
-    gradient: "from-amber-500 to-orange-600",
-    bgGradient: "from-amber-50 to-orange-50",
-    borderColor: "border-amber-200",
-    badge: "🎲 Surprise",
+    gradient: "from-[#fda4af] to-[#fb7185]",
+    badgeBg: "#ffe4e6",
+    badgeText: "#f43f5e",
+    shadowClass: "shadow-peach",
   },
   SAFE_TREND: {
-    title: "The Safe Trend",
-    subtitle: "Lựa chọn an toàn",
+    label: "⭐ Lựa Chọn An Toàn",
     icon: Shield,
-    gradient: "from-emerald-500 to-teal-600",
-    bgGradient: "from-emerald-50 to-teal-50",
-    borderColor: "border-emerald-200",
-    badge: "⭐ Best Seller",
+    gradient: "from-[#6ee7b7] to-[#34d399]",
+    badgeBg: "#d1fae5",
+    badgeText: "#10b981",
+    shadowClass: "shadow-mint",
   },
-};
+} as const;
+
+const INGREDIENT_CATEGORIES = [
+  { key: "base" as const, emoji: "☕", label: "Cốt Nền" },
+  { key: "flavor" as const, emoji: "🍓", label: "Hương Vị" },
+  { key: "function" as const, emoji: "💫", label: "Chức Năng" },
+  { key: "texture" as const, emoji: "🫧", label: "Cấu Trúc" },
+] as const;
 
 export default function DrinkCard({
   drink,
@@ -52,116 +56,91 @@ export default function DrinkCard({
 
   return (
     <motion.div
-      className={`w-full max-w-sm mx-auto swipe-card ${
+      className={`relative w-full transition-all duration-300 ${
         isActive ? "scale-100 opacity-100" : "scale-90 opacity-50"
-      } transition-all duration-300`}
-      whileHover={isActive ? { scale: 1.02 } : {}}
-      whileTap={isActive ? { scale: 0.98 } : {}}
+      }`}
+      whileHover={isActive ? { y: -4 } : {}}
+      transition={{ type: "spring", stiffness: 300, damping: 25 }}
     >
       <div
-        className={`bg-white rounded-3xl shadow-xl overflow-hidden border ${config.borderColor}`}
+        className={`bg-white rounded-3xl overflow-hidden border border-gray-100 ${config.shadowClass} shadow-lg`}
       >
-        {/* Header */}
+        {/* Top gradient strip */}
         <div
-          className={`bg-gradient-to-r ${config.gradient} p-6 text-white relative overflow-hidden`}
+          className={`bg-gradient-to-r ${config.gradient} flex items-center justify-between px-4 md:px-5`}
+          style={{ height: 64 }}
         >
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
-          <div className="relative z-10">
-            <div className="flex items-center gap-2 mb-2">
-              <Icon className="w-5 h-5" />
-              <span className="text-sm font-medium opacity-90">
-                {config.title}
-              </span>
-            </div>
-            <p className="text-xs opacity-70">{config.subtitle}</p>
-          </div>
-          <div className="absolute top-4 right-4 bg-white/20 px-3 py-1 rounded-full text-xs font-medium">
-            {config.badge}
-          </div>
+          {/* Badge pill */}
+          <span
+            className="px-3 py-1 rounded-full text-xs md:text-sm font-semibold whitespace-nowrap"
+            style={{ backgroundColor: config.badgeBg, color: config.badgeText }}
+          >
+            {config.label}
+          </span>
+
+          {/* Icon */}
+          <Icon className="w-5 h-5 md:w-6 md:h-6 text-white/90 flex-shrink-0" />
         </div>
 
-        {/* Drink Name */}
-        <div className={`bg-gradient-to-b ${config.bgGradient} px-6 py-5`}>
-          <h3 className="text-xl font-bold text-gray-800 mb-1">
+        {/* Body */}
+        <div className="p-5 md:p-6">
+          {/* Drink name */}
+          <h3 className="text-xl md:text-2xl font-bold text-gray-900 leading-tight mb-0.5">
             {drink.generatedNameVi}
           </h3>
-          <p className="text-sm text-gray-500">{drink.generatedName}</p>
-        </div>
+          <p className="text-sm text-gray-400 mb-4">{drink.generatedName}</p>
 
-        {/* Ingredients */}
-        <div className="px-6 py-4 space-y-3">
-          <div className="flex items-center gap-3">
-            <span className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center text-sm">
-              🫖
+          {/* Divider */}
+          <hr className="border-gray-100 mb-3" />
+
+          {/* Ingredient rows */}
+          <div className="mb-4">
+            {INGREDIENT_CATEGORIES.map((cat, idx) => (
+              <div
+                key={cat.key}
+                className={`flex items-center gap-2 py-2 md:py-2.5 ${
+                  idx < INGREDIENT_CATEGORIES.length - 1
+                    ? "border-b border-gray-50"
+                    : ""
+                }`}
+              >
+                <span className="text-base leading-none">{cat.emoji}</span>
+                <span className="text-xs md:text-sm text-gray-400 min-w-[72px] md:min-w-[80px]">
+                  {cat.label}
+                </span>
+                <span className="text-gray-300 text-xs">|</span>
+                <span className="text-sm md:text-base font-medium text-gray-700">
+                  {drink[cat.key].nameVi}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* Bottom row: price + size + CTA */}
+          <div className="flex items-center gap-3 mt-2">
+            {/* Price badge */}
+            <span
+              className="px-3 py-1.5 rounded-2xl text-sm font-bold whitespace-nowrap"
+              style={{ backgroundColor: config.badgeBg, color: config.badgeText }}
+            >
+              45.000đ
             </span>
-            <div>
-              <p className="text-xs text-gray-400 uppercase tracking-wider">
-                Cốt nền
-              </p>
-              <p className="text-sm font-medium text-gray-700">
-                {drink.base.nameVi}
-              </p>
-            </div>
-          </div>
 
-          <div className="flex items-center gap-3">
-            <span className="w-8 h-8 bg-pink-100 rounded-lg flex items-center justify-center text-sm">
-              🍋
+            {/* Size badge */}
+            <span className="px-3 py-1.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
+              500ml
             </span>
-            <div>
-              <p className="text-xs text-gray-400 uppercase tracking-wider">
-                Hương vị
-              </p>
-              <p className="text-sm font-medium text-gray-700">
-                {drink.flavor.nameVi}
-              </p>
-            </div>
-          </div>
 
-          <div className="flex items-center gap-3">
-            <span className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center text-sm">
-              💊
-            </span>
-            <div>
-              <p className="text-xs text-gray-400 uppercase tracking-wider">
-                Chức năng
-              </p>
-              <p className="text-sm font-medium text-gray-700">
-                {drink.function.nameVi}
-              </p>
-            </div>
+            {/* CTA button */}
+            <motion.button
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.96 }}
+              onClick={onSelect}
+              className={`flex-1 py-2.5 md:py-3 rounded-2xl text-white text-sm md:text-base font-semibold bg-gradient-to-r ${config.gradient} shadow-sm`}
+            >
+              Chọn Ly Này
+            </motion.button>
           </div>
-
-          <div className="flex items-center gap-3">
-            <span className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center text-sm">
-              🧊
-            </span>
-            <div>
-              <p className="text-xs text-gray-400 uppercase tracking-wider">
-                Kết cấu
-              </p>
-              <p className="text-sm font-medium text-gray-700">
-                {drink.texture.nameVi}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Price & CTA */}
-        <div className="px-6 pb-6 pt-2">
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-2xl font-bold text-gray-800">45.000đ</span>
-            <span className="text-sm text-gray-400">500ml</span>
-          </div>
-
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={onSelect}
-            className={`w-full py-4 rounded-2xl text-white font-semibold text-base bg-gradient-to-r ${config.gradient} shadow-lg`}
-          >
-            Chọn Ly Này
-          </motion.button>
         </div>
       </div>
     </motion.div>

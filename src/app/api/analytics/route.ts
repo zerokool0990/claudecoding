@@ -1,48 +1,118 @@
 import { NextResponse } from "next/server";
-import { MODULES } from "@/lib/data/static-data";
+import prisma from "@/lib/db/prisma";
 
-// GET /api/analytics - Dashboard analytics data (demo data for serverless)
+// GET /api/analytics - Real dashboard analytics from DB
 export async function GET() {
   try {
-    const inventoryStatus = [...MODULES]
-      .sort((a, b) => a.category.localeCompare(b.category))
-      .map((m) => ({
-        id: m.id,
-        name: m.nameVi,
-        category: m.category,
-        stock: m.stockQuantity,
-        unit: m.unit,
-        alertThreshold: m.alertThreshold,
-        isActive: m.isActive,
-        percentRemaining: Math.round(
-          (m.stockQuantity / (m.stockQuantity + m.alertThreshold * 2)) * 100
-        ),
-      }));
+    const now = new Date();
+    const startOfToday = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate()
+    );
 
-    // Sample analytics data for demo
+    const [
+      totalOrders,
+      todayOrders,
+      revenueResult,
+      cardCounts,
+      orderItemsWithModules,
+      inventoryModules,
+      totalCustomers,
+      customersWithDob,
+    ] = await Promise.all([
+      prisma.order.count({ where: { status: "COMPLETED" } }),
+      prisma.order.count({
+        where: { status: "COMPLETED", createdAt: { gte: startOfToday } },
+      }),
+      prisma.order.aggregate({
+        where: { status: "COMPLETED" },
+        _sum: { totalPrice: true },
+      }),
+      prisma.order.groupBy({
+        by: ["cardChosen"],
+        where: { status: "COMPLETED", cardChosen: { not: null } },
+        _count: { cardChosen: true },
+      }),
+      prisma.orderItem.findMany({
+        include: {
+          baseModule: { select: { nameVi: true, category: true } },
+          flavorModule: { select: { nameVi: true, category: true } },
+          functionModule: { select: { nameVi: true, category: true } },
+          textureModule: { select: { nameVi: true, category: true } },
+        },
+        take: 500,
+      }),
+      prisma.module.findMany({ orderBy: { category: "asc" } }),
+      prisma.customer.count(),
+      prisma.customer.count({ where: { dob: { not: null } } }),
+    ]);
+
+    // Card preference breakdown
+    const cardPreference = cardCounts.map((c) => ({
+      card:
+        c.cardChosen === "PERFECT_MATCH"
+          ? "Perfect Match"
+          : c.cardChosen === "PLOT_TWIST"
+          ? "Plot Twist"
+          : "Safe Trend",
+      count: c._count.cardChosen,
+    }));
+
+    // Module usage from order items
+    const moduleUsageMap = new Map<
+      string,
+      { name: string; category: string; count: number }
+    >();
+    for (const item of orderItemsWithModules) {
+      for (const mod of [
+        item.baseModule,
+        item.flavorModule,
+        item.functionModule,
+        item.textureModule,
+      ]) {
+        const key = mod.nameVi;
+        const existing = moduleUsageMap.get(key);
+        if (existing) {
+          existing.count++;
+        } else {
+          moduleUsageMap.set(key, {
+            name: mod.nameVi,
+            category: mod.category,
+            count: 1,
+          });
+        }
+      }
+    }
+    const moduleUsage = Array.from(moduleUsageMap.values())
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 12);
+
+    // Inventory status with percent remaining
+    const inventoryStatus = inventoryModules.map((m) => ({
+      id: m.id,
+      name: m.nameVi,
+      category: m.category,
+      stock: m.stockQuantity,
+      unit: m.unit,
+      alertThreshold: m.alertThreshold,
+      isActive: m.isActive,
+      percentRemaining: Math.min(
+        100,
+        Math.round((m.stockQuantity / (m.alertThreshold * 10)) * 100)
+      ),
+    }));
+
     return NextResponse.json({
-      totalOrders: 5,
-      todayOrders: 0,
-      totalRevenue: 245000,
-      cardPreference: [
-        { card: "Perfect Match", count: 3 },
-        { card: "Plot Twist", count: 1 },
-        { card: "Safe Trend", count: 1 },
-      ],
-      moduleUsage: [
-        { name: "Trà Đen", category: "BASE", count: 3 },
-        { name: "Syrup Vanilla Tự Nhiên", category: "FLAVOR", count: 2 },
-        { name: "Chiết Xuất L-Theanine", category: "FUNCTION", count: 2 },
-        { name: "Milk Foam Muối Biển", category: "TEXTURE", count: 2 },
-      ],
+      totalOrders,
+      todayOrders,
+      totalRevenue: revenueResult._sum.totalPrice ?? 0,
+      cardPreference,
+      moduleUsage,
       inventoryStatus,
-      moodDistribution: [
-        { mood: "Cần năng lượng (A1)", count: 2 },
-        { mood: "Cân bằng (B1)", count: 2 },
-        { mood: "Tràn đầy (C1)", count: 1 },
-      ],
-      totalCustomers: 0,
-      customersWithDob: 0,
+      moodDistribution: [],
+      totalCustomers,
+      customersWithDob,
     });
   } catch (error) {
     console.error("Analytics API error:", error);

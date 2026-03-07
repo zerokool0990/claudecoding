@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import prisma from "@/lib/db/prisma";
 import type { OrderCreatePayload } from "@/types";
-import { v4 as uuidv4 } from "uuid";
 
-// POST /api/orders - Create a new order (demo mode on serverless)
+// POST /api/orders - Create a new order
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as OrderCreatePayload;
@@ -12,19 +12,20 @@ export async function POST(request: NextRequest) {
     const funcSurcharge = 6000;
     const totalPrice = basePrice + funcSurcharge;
 
-    // Return a simulated order response (no persistent storage on serverless)
-    const order = {
-      id: uuidv4(),
-      customerId: customerId || null,
-      totalPrice,
-      status: "PENDING",
-      cardChosen,
-      moodTags: JSON.stringify(moodTags),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      items: [
-        {
-          id: uuidv4(),
+    const order = await prisma.$transaction(async (tx) => {
+      const newOrder = await tx.order.create({
+        data: {
+          customerId: customerId || null,
+          totalPrice,
+          status: "PENDING",
+          cardChosen,
+          moodTags: JSON.stringify(moodTags),
+        },
+      });
+
+      await tx.orderItem.create({
+        data: {
+          orderId: newOrder.id,
           generatedName: drink.generatedName,
           generatedNameVi: drink.generatedNameVi,
           baseModuleId: drink.base.id,
@@ -33,11 +34,29 @@ export async function POST(request: NextRequest) {
           textureModuleId: drink.texture.id,
           recipe: JSON.stringify(drink.recipe),
         },
-      ],
-    };
+      });
+
+      return newOrder;
+    });
 
     return NextResponse.json({
-      order,
+      order: {
+        ...order,
+        moodTags: order.moodTags,
+        createdAt: order.createdAt.toISOString(),
+        updatedAt: order.updatedAt.toISOString(),
+        items: [
+          {
+            generatedName: drink.generatedName,
+            generatedNameVi: drink.generatedNameVi,
+            baseModuleId: drink.base.id,
+            flavorModuleId: drink.flavor.id,
+            functionModuleId: drink.function.id,
+            textureModuleId: drink.texture.id,
+            recipe: JSON.stringify(drink.recipe),
+          },
+        ],
+      },
       inventoryAlerts: [],
       deductionSuccess: true,
     });
@@ -53,7 +72,24 @@ export async function POST(request: NextRequest) {
 // GET /api/orders - Get orders (for POS / Admin)
 export async function GET() {
   try {
-    return NextResponse.json([]);
+    const orders = await prisma.order.findMany({
+      orderBy: { createdAt: "desc" },
+      include: {
+        items: {
+          include: {
+            baseModule: true,
+            flavorModule: true,
+            functionModule: true,
+            textureModule: true,
+          },
+        },
+        customer: {
+          select: { id: true, name: true },
+        },
+      },
+    });
+
+    return NextResponse.json(orders);
   } catch (error) {
     console.error("Orders GET error:", error);
     return NextResponse.json(

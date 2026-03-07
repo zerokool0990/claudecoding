@@ -48,10 +48,10 @@ interface AnalyticsData {
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-  BASE: "bg-amber-100 text-amber-700",
-  FLAVOR: "bg-pink-100 text-pink-700",
-  FUNCTION: "bg-green-100 text-green-700",
-  TEXTURE: "bg-blue-100 text-blue-700",
+  BASE: "bg-[#ede9fe] text-[#8b5cf6]",
+  FLAVOR: "bg-[#fce7f3] text-[#ec4899]",
+  FUNCTION: "bg-[#d1fae5] text-[#10b981]",
+  TEXTURE: "bg-[#e0f2fe] text-[#0ea5e9]",
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -77,6 +77,10 @@ export default function AdminDashboard() {
     try {
       const res = await fetch("/api/analytics");
       const json = await res.json();
+      if (json.error) {
+        console.error("Analytics API error:", json.error);
+        return;
+      }
       setData(json);
     } catch (error) {
       console.error("Failed to fetch analytics:", error);
@@ -85,8 +89,8 @@ export default function AdminDashboard() {
 
   if (!data) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full" />
+      <div className="min-h-screen bg-[#fef9f0] flex items-center justify-center">
+        <div className="animate-spin w-8 h-8 border-4 border-[#8b5cf6] border-t-transparent rounded-full" />
       </div>
     );
   }
@@ -96,44 +100,39 @@ export default function AdminDashboard() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Sidebar for desktop / Top nav for mobile */}
-      <div className="bg-white border-b border-gray-200 px-4 py-3 sticky top-0 z-40">
+    <div className="min-h-screen bg-[#fef9f0]">
+      {/* Header */}
+      <div className="sticky top-0 z-50 bg-[#fef9f0]/90 backdrop-blur-sm border-b border-gray-100 px-4 py-3">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 gradient-brand rounded-xl flex items-center justify-center">
-              <BarChart3 className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 bg-[#ede9fe] rounded-xl flex items-center justify-center">
+              <Coffee className="w-5 h-5 text-[#8b5cf6]" />
             </div>
-            <div>
-              <h1 className="text-lg font-bold text-gray-800">
-                Admin Dashboard
-              </h1>
-              <p className="text-xs text-gray-400">
-                AI Drink Management System
-              </p>
-            </div>
+            <h1 className="text-lg font-display font-bold text-gray-900">
+              AI Drink Admin
+            </h1>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="hidden sm:flex items-center gap-4">
             <Link
               href="/"
-              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition"
+              className="text-sm text-gray-500 hover:text-gray-700 transition"
             >
-              <Home className="w-5 h-5" />
+              Trang chủ
             </Link>
             <Link
               href="/pos"
-              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition"
+              className="text-sm text-gray-500 hover:text-gray-700 transition"
             >
-              <Coffee className="w-5 h-5" />
+              Barista POS
             </Link>
           </div>
         </div>
       </div>
 
       {/* Tab navigation */}
-      <div className="bg-white border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex gap-1">
+      <div className="px-4 pt-4 pb-2">
+        <div className="max-w-7xl mx-auto">
+          <div className="bg-white rounded-2xl p-1 shadow-sm inline-flex gap-1 overflow-x-auto">
             {[
               { id: "overview" as const, label: "Tổng quan", icon: TrendingUp },
               { id: "inventory" as const, label: "Kho hàng", icon: Package },
@@ -142,10 +141,10 @@ export default function AdminDashboard() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition ${
+                className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl transition ${
                   activeTab === tab.id
-                    ? "border-purple-500 text-purple-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700"
+                    ? "bg-gradient-to-r from-[#8b5cf6] to-[#ec4899] text-white"
+                    : "text-gray-500 hover:text-gray-700"
                 }`}
               >
                 <tab.icon className="w-4 h-4" />
@@ -156,7 +155,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-6">
+      <div className="max-w-7xl mx-auto px-4 py-4">
         {/* Overview Tab */}
         {activeTab === "overview" && (
           <div className="space-y-6">
@@ -165,32 +164,32 @@ export default function AdminDashboard() {
               <StatCard
                 title="Tổng đơn hàng"
                 value={data.totalOrders.toString()}
-                icon={<ShoppingBag className="w-5 h-5" />}
-                color="purple"
+                icon={<ShoppingBag className="w-5 h-5 text-[#8b5cf6]" />}
+                iconBg="bg-[#ede9fe]"
               />
               <StatCard
                 title="Hôm nay"
                 value={data.todayOrders.toString()}
-                icon={<TrendingUp className="w-5 h-5" />}
-                color="blue"
+                icon={<TrendingUp className="w-5 h-5 text-[#0ea5e9]" />}
+                iconBg="bg-[#e0f2fe]"
               />
               <StatCard
                 title="Doanh thu"
                 value={`${(data.totalRevenue / 1000).toFixed(0)}K`}
-                icon={<DollarSign className="w-5 h-5" />}
-                color="green"
+                icon={<DollarSign className="w-5 h-5 text-[#10b981]" />}
+                iconBg="bg-[#d1fae5]"
               />
               <StatCard
                 title="Khách hàng"
                 value={data.totalCustomers.toString()}
-                icon={<Users className="w-5 h-5" />}
-                color="amber"
+                icon={<Users className="w-5 h-5 text-[#f59e0b]" />}
+                iconBg="bg-[#fef3c7]"
               />
             </div>
 
             {/* Alerts */}
             {lowStockItems.length > 0 && (
-              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
+              <div className="bg-[#fef3c7] border border-[#fcd34d] rounded-2xl p-4">
                 <div className="flex items-center gap-2 text-amber-700 font-medium mb-3">
                   <AlertTriangle className="w-5 h-5" />
                   Cảnh báo tồn kho thấp
@@ -203,7 +202,7 @@ export default function AdminDashboard() {
                     >
                       <div className="flex items-center gap-3">
                         <span
-                          className={`px-2 py-0.5 rounded text-xs font-medium ${
+                          className={`px-2 py-0.5 rounded-lg text-xs font-medium ${
                             CATEGORY_COLORS[item.category]
                           }`}
                         >
@@ -223,11 +222,11 @@ export default function AdminDashboard() {
             )}
 
             {/* Card Preference Chart */}
-            <div className="bg-white rounded-2xl p-6 shadow-sm">
+            <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
               <h3 className="text-base font-semibold text-gray-800 mb-4">
                 Tỷ lệ chọn thẻ đề xuất
               </h3>
-              <div className="h-64">
+              <div className="h-64 md:h-80 lg:h-96">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
@@ -237,8 +236,8 @@ export default function AdminDashboard() {
                       outerRadius={80}
                       dataKey="count"
                       nameKey="card"
-                      label={(props: any) =>
-                        `${props.name} ${(props.percent * 100).toFixed(0)}%`
+                      label={(props) =>
+                        `${props.name ?? ""} ${((props.percent ?? 0) * 100).toFixed(0)}%`
                       }
                     >
                       {data.cardPreference.map((_, idx) => (
@@ -252,11 +251,11 @@ export default function AdminDashboard() {
             </div>
 
             {/* Mood Distribution */}
-            <div className="bg-white rounded-2xl p-6 shadow-sm">
+            <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
               <h3 className="text-base font-semibold text-gray-800 mb-4">
                 Live Mood Board - Tâm trạng khách hàng
               </h3>
-              <div className="h-64">
+              <div className="h-64 md:h-80 lg:h-96">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={data.moodDistribution}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -283,11 +282,11 @@ export default function AdminDashboard() {
         {activeTab === "analytics" && (
           <div className="space-y-6">
             {/* Module Usage */}
-            <div className="bg-white rounded-2xl p-6 shadow-sm">
+            <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
               <h3 className="text-base font-semibold text-gray-800 mb-4">
                 Ma trận sử dụng nguyên liệu
               </h3>
-              <div className="h-80">
+              <div className="h-80 md:h-96 lg:h-[28rem]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={data.moduleUsage.slice(0, 12)} layout="vertical">
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -299,31 +298,31 @@ export default function AdminDashboard() {
                       tick={{ fontSize: 11 }}
                     />
                     <Tooltip />
-                    <Bar dataKey="count" fill="#6366f1" radius={[0, 8, 8, 0]} />
+                    <Bar dataKey="count" fill="#8b5cf6" radius={[0, 8, 8, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
             </div>
 
             {/* Customer Insights */}
-            <div className="bg-white rounded-2xl p-6 shadow-sm">
+            <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
               <h3 className="text-base font-semibold text-gray-800 mb-4">
                 Hồ sơ khách hàng
               </h3>
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-purple-50 rounded-xl p-4 text-center">
-                  <p className="text-3xl font-bold text-purple-600">
+                <div className="bg-[#ede9fe] rounded-2xl p-4 text-center">
+                  <p className="text-3xl font-display font-bold text-[#8b5cf6]">
                     {data.totalCustomers}
                   </p>
-                  <p className="text-sm text-purple-500 mt-1">
+                  <p className="text-sm text-[#8b5cf6]/70 mt-1">
                     Tổng khách đăng ký
                   </p>
                 </div>
-                <div className="bg-pink-50 rounded-xl p-4 text-center">
-                  <p className="text-3xl font-bold text-pink-600">
+                <div className="bg-[#fce7f3] rounded-2xl p-4 text-center">
+                  <p className="text-3xl font-display font-bold text-[#ec4899]">
                     {data.customersWithDob}
                   </p>
-                  <p className="text-sm text-pink-500 mt-1">
+                  <p className="text-sm text-[#ec4899]/70 mt-1">
                     Có ngày sinh
                   </p>
                 </div>
@@ -340,29 +339,22 @@ function StatCard({
   title,
   value,
   icon,
-  color,
+  iconBg,
 }: {
   title: string;
   value: string;
   icon: React.ReactNode;
-  color: string;
+  iconBg: string;
 }) {
-  const colors: Record<string, string> = {
-    purple: "bg-purple-50 text-purple-600",
-    blue: "bg-blue-50 text-blue-600",
-    green: "bg-green-50 text-green-600",
-    amber: "bg-amber-50 text-amber-600",
-  };
-
   return (
-    <div className="bg-white rounded-2xl p-4 shadow-sm">
+    <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5">
       <div
-        className={`w-10 h-10 rounded-xl ${colors[color]} flex items-center justify-center mb-3`}
+        className={`w-10 h-10 rounded-xl ${iconBg} flex items-center justify-center mb-3`}
       >
         {icon}
       </div>
-      <p className="text-2xl font-bold text-gray-800">{value}</p>
-      <p className="text-xs text-gray-400 mt-1">{title}</p>
+      <p className="text-3xl font-display font-bold text-gray-900">{value}</p>
+      <p className="text-sm text-gray-500 mt-1">{title}</p>
     </div>
   );
 }
@@ -407,7 +399,7 @@ function InventoryTab({
   return (
     <div className="space-y-6">
       {/* Import form */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm">
+      <div className="bg-white rounded-2xl shadow-sm p-4">
         <h3 className="text-base font-semibold text-gray-800 mb-4">
           Nhập Kho Nguyên Liệu
         </h3>
@@ -415,7 +407,7 @@ function InventoryTab({
           <select
             value={importModuleId}
             onChange={(e) => setImportModuleId(e.target.value)}
-            className="flex-1 px-4 py-3 rounded-xl border border-gray-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 outline-none text-gray-700"
+            className="flex-1 px-4 py-3 rounded-xl border border-gray-200 focus:border-[#8b5cf6] focus:ring-2 focus:ring-[#ede9fe] outline-none text-gray-700"
           >
             <option value="">Chọn nguyên liệu...</option>
             {inventoryStatus.map((m) => (
@@ -429,12 +421,12 @@ function InventoryTab({
             value={importQty}
             onChange={(e) => setImportQty(e.target.value)}
             placeholder="Số lượng"
-            className="w-full md:w-40 px-4 py-3 rounded-xl border border-gray-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 outline-none text-gray-700"
+            className="w-full md:w-40 px-4 py-3 rounded-xl border border-gray-200 focus:border-[#8b5cf6] focus:ring-2 focus:ring-[#ede9fe] outline-none text-gray-700"
           />
           <button
             onClick={handleImport}
             disabled={importing || !importModuleId || !importQty}
-            className="px-6 py-3 bg-purple-600 text-white font-medium rounded-xl hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+            className="px-6 py-3 bg-gradient-to-r from-[#8b5cf6] to-[#ec4899] text-white font-medium rounded-xl hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition"
           >
             {importing ? "Đang nhập..." : "Nhập kho"}
           </button>
@@ -447,10 +439,10 @@ function InventoryTab({
         if (items.length === 0) return null;
 
         return (
-          <div key={cat} className="bg-white rounded-2xl p-6 shadow-sm">
+          <div key={cat} className="bg-white rounded-2xl shadow-sm p-6">
             <div className="flex items-center gap-2 mb-4">
               <span
-                className={`px-2 py-1 rounded-lg text-xs font-medium ${CATEGORY_COLORS[cat]}`}
+                className={`px-3 py-1 rounded-full text-xs font-medium ${CATEGORY_COLORS[cat]}`}
               >
                 {CATEGORY_LABELS[cat]}
               </span>
@@ -458,7 +450,7 @@ function InventoryTab({
                 ({items.length} loại)
               </h3>
             </div>
-            <div className="space-y-3">
+            <div className="space-y-2">
               {items.map((item) => {
                 const isLow = item.stock <= item.alertThreshold;
                 const isOut = !item.isActive;
@@ -466,13 +458,7 @@ function InventoryTab({
                 return (
                   <div
                     key={item.id}
-                    className={`flex items-center justify-between p-4 rounded-xl border ${
-                      isOut
-                        ? "bg-red-50 border-red-200"
-                        : isLow
-                        ? "bg-amber-50 border-amber-200"
-                        : "bg-gray-50 border-gray-100"
-                    }`}
+                    className="bg-white rounded-2xl border border-gray-100 p-3 mb-2 flex items-center justify-between"
                   >
                     <div>
                       <p className="font-medium text-gray-800">{item.name}</p>
@@ -480,27 +466,27 @@ function InventoryTab({
                         Ngưỡng cảnh báo: {item.alertThreshold} {item.unit}
                       </p>
                     </div>
-                    <div className="text-right">
-                      <p
-                        className={`text-lg font-bold ${
-                          isOut
-                            ? "text-red-600"
-                            : isLow
-                            ? "text-amber-600"
-                            : "text-gray-800"
-                        }`}
-                      >
+                    <div className="text-right flex flex-col items-end gap-1">
+                      <p className="text-lg font-bold text-gray-900">
                         {item.stock.toLocaleString()} {item.unit}
                       </p>
                       {isOut && (
-                        <span className="text-xs text-red-500 font-medium">
-                          HẾT HÀNG
-                        </span>
+                        <div className="flex items-center gap-1">
+                          <span className="w-2 h-2 rounded-full bg-red-500 inline-block" />
+                          <span className="text-xs text-red-500 font-medium">HẾT HÀNG</span>
+                        </div>
                       )}
                       {isLow && !isOut && (
-                        <span className="text-xs text-amber-500 font-medium">
-                          SẮP HẾT
-                        </span>
+                        <div className="flex items-center gap-1">
+                          <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" />
+                          <span className="text-xs text-amber-500 font-medium">SẮP HẾT</span>
+                        </div>
+                      )}
+                      {!isLow && !isOut && (
+                        <div className="flex items-center gap-1">
+                          <span className="w-2 h-2 rounded-full bg-green-500 inline-block" />
+                          <span className="text-xs text-green-500 font-medium">OK</span>
+                        </div>
                       )}
                     </div>
                   </div>

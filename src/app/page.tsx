@@ -1,96 +1,110 @@
-"use client";
-
-import { motion } from "framer-motion";
 import Link from "next/link";
-import { Sparkles, BarChart3, Coffee } from "lucide-react";
+import { Coffee } from "lucide-react";
 
 export default function HomePage() {
   return (
-    <main className="min-h-screen gradient-brand flex flex-col items-center justify-center p-6 relative overflow-hidden">
-      {/* Animated background circles */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <motion.div
-          className="absolute w-72 h-72 rounded-full bg-white/10 -top-20 -left-20"
-          animate={{ scale: [1, 1.2, 1], rotate: [0, 180, 360] }}
-          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-        />
-        <motion.div
-          className="absolute w-96 h-96 rounded-full bg-white/5 -bottom-32 -right-32"
-          animate={{ scale: [1.2, 1, 1.2], rotate: [360, 180, 0] }}
-          transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-        />
-        <motion.div
-          className="absolute w-48 h-48 rounded-full bg-white/10 top-1/3 right-10"
-          animate={{ y: [0, -20, 0], x: [0, 10, 0] }}
-          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-        />
-      </div>
+    <main className="min-h-screen bg-[#fef9f0] flex flex-col items-center justify-center relative overflow-hidden">
+      {/* Floating decorative blobs */}
+      <div
+        className="absolute top-[-60px] left-[-60px] w-[300px] h-[300px] rounded-full bg-[#ede9fe] blur-3xl opacity-70 animate-float"
+        aria-hidden="true"
+      />
+      <div
+        className="absolute top-[-40px] right-[-80px] w-[200px] h-[200px] rounded-full bg-[#ffe4e6] blur-2xl opacity-70 animate-float-slow"
+        aria-hidden="true"
+      />
+      <div
+        className="absolute bottom-[-60px] left-[-40px] w-[250px] h-[250px] rounded-full bg-[#d1fae5] blur-3xl opacity-60 animate-float-medium"
+        aria-hidden="true"
+      />
+      <div
+        className="absolute bottom-[-30px] right-[-60px] w-[300px] h-[300px] rounded-full bg-[#e0f2fe] blur-3xl opacity-70 animate-float-slow"
+        aria-hidden="true"
+      />
+      <div
+        className="absolute top-1/2 left-[5%] w-[150px] h-[150px] rounded-full bg-[#ede9fe] blur-2xl opacity-50 animate-float-medium"
+        aria-hidden="true"
+      />
 
-      <motion.div
-        className="text-center z-10 max-w-md mx-auto"
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8 }}
+      {/* Floating drink emojis */}
+      <span
+        className="absolute top-[12%] right-[8%] text-3xl animate-float select-none pointer-events-none"
+        aria-hidden="true"
       >
-        {/* Logo */}
-        <motion.div
-          className="mb-8"
-          animate={{ y: [0, -8, 0] }}
-          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-        >
-          <div className="w-24 h-24 mx-auto bg-white/20 rounded-3xl flex items-center justify-center backdrop-blur-sm border border-white/30">
-            <span className="text-5xl">🧋</span>
-          </div>
-        </motion.div>
+        🧋
+      </span>
+      <span
+        className="absolute top-[22%] left-[6%] text-2xl animate-float-slow select-none pointer-events-none"
+        aria-hidden="true"
+      >
+        🍵
+      </span>
+      <span
+        className="absolute bottom-[18%] right-[10%] text-2xl animate-float-medium select-none pointer-events-none"
+        aria-hidden="true"
+      >
+        ☕
+      </span>
+      <span
+        className="absolute bottom-[25%] left-[8%] text-3xl animate-float select-none pointer-events-none"
+        aria-hidden="true"
+      >
+        🫖
+      </span>
 
-        <h1 className="text-4xl font-bold text-white mb-3 tracking-tight">
-          AI Drink
-        </h1>
-        <p className="text-white/80 text-lg mb-2">Đồ Uống Cá Nhân Hóa</p>
-        <p className="text-white/60 text-sm mb-10 leading-relaxed">
-          Trả lời 5 câu hỏi vui, khám phá ly nước
-          <br />
-          được tạo riêng cho tâm trạng của bạn
+      {/* Centered content */}
+      <div className="relative z-10 w-full max-w-sm md:max-w-md lg:max-w-lg mx-auto px-6 flex flex-col items-center text-center gap-6">
+        {/* Logo area */}
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-20 h-20 md:w-24 md:h-24 lg:w-28 lg:h-28 rounded-3xl bg-[#ede9fe] flex items-center justify-center shadow-lavender">
+            <Coffee size={48} className="text-[#8b5cf6] md:w-14 md:h-14" />
+          </div>
+
+          <h1 className="text-5xl md:text-6xl lg:text-7xl font-display font-black text-gray-900 leading-tight tracking-tight">
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#8b5cf6] to-[#ec4899]">
+              AI
+            </span>{" "}
+            Drink
+          </h1>
+
+          <p className="text-gray-400 text-sm md:text-base font-medium tracking-wide uppercase">
+            Đồ Uống Cá Nhân Hóa
+          </p>
+        </div>
+
+        {/* Tagline */}
+        <p className="text-gray-500 text-sm md:text-base lg:text-lg leading-relaxed text-center">
+          Trả lời 5 câu hỏi — nhận 3 gợi ý đồ uống hoàn toàn riêng cho bạn 🔮
         </p>
 
-        {/* Main CTA */}
-        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-          <Link
-            href="/quiz"
-            className="inline-flex items-center gap-3 bg-white text-purple-700 font-bold text-lg px-10 py-4 rounded-2xl shadow-xl hover:shadow-2xl transition-shadow"
-          >
-            <Sparkles className="w-5 h-5" />
-            Bắt Đầu Khám Phá
-          </Link>
-        </motion.div>
-
-        {/* Sub links */}
-        <div className="mt-10 flex flex-col sm:flex-row gap-3 justify-center">
-          <Link
-            href="/admin"
-            className="inline-flex items-center gap-2 text-white/60 hover:text-white/90 text-sm transition-colors bg-white/10 px-4 py-2 rounded-xl"
-          >
-            <BarChart3 className="w-4 h-4" />
-            Admin Dashboard
-          </Link>
-          <Link
-            href="/pos"
-            className="inline-flex items-center gap-2 text-white/60 hover:text-white/90 text-sm transition-colors bg-white/10 px-4 py-2 rounded-xl"
-          >
-            <Coffee className="w-4 h-4" />
-            Barista POS
-          </Link>
+        {/* Feature pills */}
+        <div className="flex flex-wrap justify-center gap-2">
+          <span className="text-xs md:text-sm font-semibold text-[#8b5cf6] bg-[#ede9fe] rounded-full px-3 py-1 md:px-4 md:py-1.5">
+            ✨ 5 câu hỏi
+          </span>
+          <span className="text-xs md:text-sm font-semibold text-[#8b5cf6] bg-[#ede9fe] rounded-full px-3 py-1 md:px-4 md:py-1.5">
+            🎯 3 gợi ý
+          </span>
+          <span className="text-xs md:text-sm font-semibold text-[#8b5cf6] bg-[#ede9fe] rounded-full px-3 py-1 md:px-4 md:py-1.5">
+            ⚡ 30 giây
+          </span>
         </div>
-      </motion.div>
 
-      {/* Bottom wave */}
-      <div className="absolute bottom-0 left-0 right-0">
-        <svg viewBox="0 0 1440 120" className="w-full">
-          <path
-            fill="rgba(255,255,255,0.1)"
-            d="M0,60 C360,120 720,0 1440,60 L1440,120 L0,120 Z"
-          />
-        </svg>
+        {/* Main CTA */}
+        <Link
+          href="/quiz"
+          className="bg-gradient-to-r from-[#8b5cf6] to-[#ec4899] text-white rounded-2xl py-4 md:py-5 px-8 md:px-12 font-semibold text-lg md:text-xl w-full text-center shadow-lavender hover:opacity-90 transition-opacity"
+        >
+          Khám Phá Vibe Của Bạn →
+        </Link>
+
+        {/* Staff access — small inconspicuous link */}
+        <p className="text-gray-300 text-xs pt-1">
+          Nhân viên?{" "}
+          <Link href="/admin" className="underline hover:text-gray-500 transition-colors">
+            Đăng nhập hệ thống
+          </Link>
+        </p>
       </div>
     </main>
   );

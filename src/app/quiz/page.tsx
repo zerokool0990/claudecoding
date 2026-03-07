@@ -6,7 +6,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useQuizStore } from "@/store/quizStore";
 import QuestionCard from "@/components/quiz/QuestionCard";
 import ProgressBar from "@/components/quiz/ProgressBar";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ChevronLeft, Loader2 } from "lucide-react";
 import type { AnswerValue } from "@/types";
 
 export default function QuizPage() {
@@ -112,40 +112,50 @@ export default function QuizPage() {
 
   const currentQuestion = questions?.find((q) => q.stepNumber === currentStep);
 
+  // Loading screen — questions not yet fetched
   if (isLoading && (!questions || questions.length === 0)) {
     return (
-      <div className="min-h-screen gradient-brand flex items-center justify-center">
+      <div className="min-h-screen bg-[#fef9f0] flex items-center justify-center">
         <motion.div
           className="text-center"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
+          transition={{ duration: 0.4 }}
         >
-          <Loader2 className="w-10 h-10 text-white animate-spin mx-auto mb-4" />
-          <p className="text-white/80">Đang chuẩn bị câu hỏi...</p>
+          <Loader2 className="w-10 h-10 text-[#8b5cf6] animate-spin mx-auto mb-4" />
+          <p className="text-gray-500 text-sm font-medium">Đang tải câu hỏi...</p>
         </motion.div>
       </div>
     );
   }
 
-  if (isLoading && currentStep > 5) {
+  // Generating recommendations overlay — after step 5 answered
+  if (isLoading && currentStep >= 5) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-700 flex items-center justify-center">
+      <div className="min-h-screen bg-[#fef9f0] flex items-center justify-center">
         <motion.div
-          className="text-center"
-          initial={{ opacity: 0, scale: 0.8 }}
+          className="text-center px-6"
+          initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.4, ease: "easeOut" }}
         >
           <motion.div
-            className="w-20 h-20 mx-auto mb-6 bg-white/20 rounded-full flex items-center justify-center"
+            className="w-20 h-20 mx-auto mb-6 bg-[#ede9fe] rounded-full flex items-center justify-center"
             animate={{ rotate: 360 }}
-            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+            transition={{ duration: 2.5, repeat: Infinity, ease: "linear" }}
           >
-            <span className="text-4xl">🧪</span>
+            <Loader2 className="w-9 h-9 text-[#8b5cf6]" />
           </motion.div>
-          <p className="text-white text-xl font-semibold mb-2">
-            Đang pha chế công thức...
-          </p>
-          <p className="text-white/60">Vũ trụ đang mix ly nước cho bạn</p>
+
+          <motion.p
+            className="text-gray-800 text-lg font-display font-bold mb-2"
+            animate={{ opacity: [1, 0.5, 1] }}
+            transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+          >
+            Đang pha chế công thức riêng cho bạn... 🔮
+          </motion.p>
+
+          <p className="text-gray-400 text-sm">Vũ trụ đang mix ly nước hoàn hảo</p>
         </motion.div>
       </div>
     );
@@ -154,31 +164,40 @@ export default function QuizPage() {
   if (!currentQuestion) return null;
 
   return (
-    <div className="relative">
-      <ProgressBar current={currentStep} total={5} />
+    <div className="min-h-screen bg-[#fef9f0] relative">
+      {/* Progress bar — fixed top */}
+      <ProgressBar currentStep={currentStep} />
 
-      {/* Back button */}
-      {currentStep > 1 && (
-        <motion.button
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="fixed top-8 left-4 z-50 w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-white/30 transition-colors"
-          onClick={prevStep}
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </motion.button>
-      )}
+      {/* Desktop: centered content area with top padding for ProgressBar */}
+      <div className="pt-[80px] md:pt-[90px] md:px-6 md:pb-12 md:flex md:justify-center">
+        <div className="w-full max-w-2xl relative">
 
-      <AnimatePresence mode="wait">
-        <QuestionCard
-          key={currentStep}
-          stepNumber={currentQuestion.stepNumber}
-          questionText={currentQuestion.questionText}
-          answers={currentQuestion.answers}
-          selectedAnswer={answers[currentStep]}
-          onAnswer={handleAnswer}
-        />
-      </AnimatePresence>
+          {/* Back button */}
+          {currentStep > 1 && (
+            <motion.button
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.25 }}
+              className="absolute -top-10 left-4 md:left-0 z-40 flex items-center justify-center w-9 h-9 rounded-2xl bg-white shadow-soft text-gray-500 hover:text-gray-700 hover:shadow-md transition-all"
+              onClick={prevStep}
+              aria-label="Quay lại"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </motion.button>
+          )}
+
+          {/* Question card with enter/exit animation */}
+          <AnimatePresence mode="wait">
+            <QuestionCard
+              key={currentStep}
+              question={currentQuestion}
+              currentStep={currentStep}
+              selectedAnswer={answers[currentStep] ?? null}
+              onAnswer={handleAnswer}
+            />
+          </AnimatePresence>
+        </div>
+      </div>
     </div>
   );
 }

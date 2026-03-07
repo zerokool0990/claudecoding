@@ -1,9 +1,86 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
+// ---- Mock utils ----
 vi.mock("@/lib/utils/zodiac", () => ({
   isBirthdayMonth: vi.fn().mockReturnValue(false),
   getZodiacSign: vi.fn().mockReturnValue("Aries"),
 }));
+
+// ---- Mock Prisma ----
+vi.mock("@/lib/db/prisma", () => ({
+  default: {
+    customer: {
+      create: vi.fn(),
+      findUnique: vi.fn().mockResolvedValue(null),
+      findMany: vi.fn().mockResolvedValue([]),
+      count: vi.fn().mockResolvedValue(3),
+    },
+    order: {
+      findMany: vi.fn().mockResolvedValue([]),
+      update: vi.fn(),
+      count: vi.fn().mockResolvedValue(5),
+      aggregate: vi.fn().mockResolvedValue({ _sum: { totalPrice: 225000 } }),
+      groupBy: vi.fn().mockResolvedValue([
+        { cardChosen: "PERFECT_MATCH", _count: { cardChosen: 3 } },
+        { cardChosen: "PLOT_TWIST", _count: { cardChosen: 2 } },
+      ]),
+    },
+    orderItem: {
+      create: vi.fn().mockResolvedValue({}),
+      findMany: vi.fn().mockResolvedValue([]),
+    },
+    module: {
+      findMany: vi.fn().mockResolvedValue([]),
+      findUnique: vi.fn(),
+      update: vi.fn().mockResolvedValue({
+        stockQuantity: 5000,
+        alertThreshold: 500,
+        unit: "ml",
+        id: "test",
+        isActive: true,
+        nameVi: "Test",
+      }),
+    },
+    inventoryLog: { create: vi.fn().mockResolvedValue({}) },
+    $transaction: vi.fn().mockImplementation(
+      async (fn: (tx: unknown) => unknown) => {
+        const mockTx = {
+          order: {
+            create: vi.fn().mockResolvedValue({
+              id: "tx-order-id",
+              totalPrice: 45000,
+              status: "PENDING",
+              cardChosen: "PERFECT_MATCH",
+              moodTags: "[]",
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            }),
+          },
+          orderItem: { create: vi.fn().mockResolvedValue({}) },
+          module: {
+            update: vi.fn().mockResolvedValue({
+              stockQuantity: 5000,
+              alertThreshold: 500,
+              unit: "ml",
+              id: "m",
+              isActive: true,
+              nameVi: "M",
+            }),
+          },
+          inventoryLog: { create: vi.fn().mockResolvedValue({}) },
+        };
+        return fn(mockTx);
+      }
+    ),
+  },
+}));
+
+// ---- Imports after mocks ----
+import prisma from "@/lib/db/prisma";
+import { MODULES } from "@/lib/data/static-data";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db = prisma as any;
 
 // ============= Helper to create mock request =============
 function createRequest(
@@ -22,6 +99,7 @@ function createRequest(
 describe("Quiz API - GET /api/quiz", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    db.customer.findUnique.mockResolvedValue(null);
   });
 
   it("should return 5 questions (one per step)", async () => {
@@ -40,7 +118,6 @@ describe("Quiz API - GET /api/quiz", () => {
     const response = await GET(req as never);
     const data = await response.json();
 
-    // Answers should be parsed objects, not strings
     expect(Array.isArray(data.questions[0].answers)).toBe(true);
     expect(data.questions[0].answers[0]).toHaveProperty("label");
     expect(data.questions[0].answers[0]).toHaveProperty("value");
@@ -72,7 +149,7 @@ describe("Recommend API - POST /api/quiz/recommend", () => {
     const { POST } = await import("@/app/api/quiz/recommend/route");
     const req = createRequest("http://localhost:3000/api/quiz/recommend", {
       method: "POST",
-      body: { answers: { step1: "A", step2: "B" } }, // missing step3-5
+      body: { answers: { step1: "A", step2: "B" } },
     });
 
     const response = await POST(req as never);
@@ -170,6 +247,15 @@ describe("Orders API - POST /api/orders", () => {
 describe("Orders API - PATCH /api/orders/:id", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    db.order.update.mockImplementation(
+      ({ data }: { data: { status: string } }) =>
+        Promise.resolve({
+          id: "123",
+          status: data.status,
+          updatedAt: new Date(),
+          items: [],
+        })
+    );
   });
 
   it("rejects invalid status values", async () => {
@@ -222,6 +308,18 @@ describe("Orders API - PATCH /api/orders/:id", () => {
 describe("Customers API - POST /api/customers", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    db.customer.create.mockImplementation(
+      ({ data }: { data: { name: string | null; dob: Date | null; zodiacSign: string | null } }) =>
+        Promise.resolve({
+          id: "cust-mock-id",
+          name: data.name,
+          dob: data.dob || null,
+          zodiacSign: data.zodiacSign || null,
+          savedPreferences: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+    );
   });
 
   it("creates customer with name only", async () => {
@@ -266,13 +364,17 @@ describe("Customers API - POST /api/customers", () => {
 
 // ============= Modules API Tests =============
 describe("Modules API - GET /api/modules", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    db.module.findMany.mockResolvedValue(MODULES);
+  });
+
   it("returns list of modules ordered by category", async () => {
     const { GET } = await import("@/app/api/modules/route");
     const response = await GET();
     const data = await response.json();
 
     expect(data.length).toBe(12);
-    // Check ordering: BASE comes before FLAVOR
     const firstBase = data.findIndex((m: { category: string }) => m.category === "BASE");
     const firstFlavor = data.findIndex((m: { category: string }) => m.category === "FLAVOR");
     expect(firstBase).toBeLessThan(firstFlavor);
@@ -280,6 +382,15 @@ describe("Modules API - GET /api/modules", () => {
 });
 
 describe("Modules API - PATCH /api/modules", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    db.module.findMany.mockResolvedValue(MODULES);
+    db.module.findUnique.mockImplementation(
+      ({ where }: { where: { id: string } }) =>
+        Promise.resolve(MODULES.find((m) => m.id === where.id) || null)
+    );
+  });
+
   it("returns module data for valid moduleId", async () => {
     const { PATCH } = await import("@/app/api/modules/route");
     const req = createRequest("http://localhost:3000/api/modules", {
@@ -307,6 +418,19 @@ describe("Modules API - PATCH /api/modules", () => {
 
 // ============= Analytics API Tests =============
 describe("Analytics API - GET /api/analytics", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    db.module.findMany.mockResolvedValue(MODULES);
+    db.order.count.mockResolvedValue(5);
+    db.order.aggregate.mockResolvedValue({ _sum: { totalPrice: 225000 } });
+    db.order.groupBy.mockResolvedValue([
+      { cardChosen: "PERFECT_MATCH", _count: { cardChosen: 3 } },
+      { cardChosen: "PLOT_TWIST", _count: { cardChosen: 2 } },
+    ]);
+    db.orderItem.findMany.mockResolvedValue([]);
+    db.customer.count.mockResolvedValue(3);
+  });
+
   it("returns comprehensive analytics data", async () => {
     const { GET } = await import("@/app/api/analytics/route");
     const response = await GET();

@@ -1,115 +1,153 @@
 "use client";
 
 import { motion } from "framer-motion";
-import type { AnswerValue } from "@/types";
+import type { QuestionData, AnswerValue } from "@/types";
 
 interface QuestionCardProps {
-  stepNumber: number;
-  questionText: string;
-  answers: { label: string; value: AnswerValue; logicMapping: string }[];
-  selectedAnswer?: AnswerValue;
-  onAnswer: (value: AnswerValue) => void;
+  question: QuestionData;
+  currentStep: number; // 1-5
+  selectedAnswer: AnswerValue | null;
+  onAnswer: (answer: AnswerValue) => void;
 }
 
-const STEP_GRADIENTS = [
-  "from-violet-500 to-purple-600",
-  "from-pink-500 to-rose-600",
-  "from-amber-500 to-orange-600",
-  "from-emerald-500 to-teal-600",
-  "from-blue-500 to-indigo-600",
-];
-
-const STEP_BG_GRADIENTS = [
-  "from-violet-600 via-purple-600 to-indigo-700",
-  "from-pink-600 via-rose-500 to-red-600",
-  "from-amber-500 via-orange-500 to-red-500",
-  "from-emerald-500 via-teal-500 to-cyan-600",
-  "from-blue-600 via-indigo-600 to-violet-700",
-];
-
-const STEP_LABELS = [
-  "Năng Lượng",
-  "Hương Vị",
-  "Chức Năng",
-  "Xúc Giác",
-  "Mạo Hiểm",
-];
+const STEP_CONFIG = [
+  {
+    label: "Năng Lượng",
+    emoji: "⚡",
+    bg: "#ede9fe",
+    text: "#8b5cf6",
+    fill: "#8b5cf6",
+  },
+  {
+    label: "Hương Vị",
+    emoji: "🍓",
+    bg: "#ffe4e6",
+    text: "#f43f5e",
+    fill: "#f43f5e",
+  },
+  {
+    label: "Chức Năng",
+    emoji: "💫",
+    bg: "#d1fae5",
+    text: "#10b981",
+    fill: "#10b981",
+  },
+  {
+    label: "Cấu Trúc",
+    emoji: "🫧",
+    bg: "#e0f2fe",
+    text: "#0ea5e9",
+    fill: "#0ea5e9",
+  },
+  {
+    label: "Mạo Hiểm",
+    emoji: "🎲",
+    bg: "#fef3c7",
+    text: "#f59e0b",
+    fill: "#f59e0b",
+  },
+] as const;
 
 export default function QuestionCard({
-  stepNumber,
-  questionText,
-  answers,
+  question,
+  currentStep,
   selectedAnswer,
   onAnswer,
 }: QuestionCardProps) {
-  const gradientIndex = stepNumber - 1;
+  const stepIndex = currentStep - 1;
+  const config = STEP_CONFIG[stepIndex];
 
   return (
     <motion.div
-      key={stepNumber}
-      initial={{ opacity: 0, x: 100, scale: 0.9 }}
-      animate={{ opacity: 1, x: 0, scale: 1 }}
-      exit={{ opacity: 0, x: -100, scale: 0.9 }}
-      transition={{ type: "spring", stiffness: 300, damping: 30 }}
-      className={`min-h-screen bg-gradient-to-br ${STEP_BG_GRADIENTS[gradientIndex]} flex flex-col items-center justify-center p-6`}
+      key={currentStep}
+      initial={{ opacity: 0, y: 40 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -40 }}
+      transition={{ type: "spring", stiffness: 300, damping: 25 }}
+      className="
+        w-full bg-white
+        rounded-t-3xl md:rounded-3xl
+        flex flex-col
+        px-5 pt-6 pb-10
+        md:px-8 md:pt-8 md:pb-12
+        min-h-[calc(100vh-80px)] md:min-h-0
+        md:shadow-[0_8px_40px_rgba(0,0,0,0.08)]
+      "
     >
-      {/* Step indicator */}
+      {/* Step badge pill */}
       <motion.div
-        className="mb-6"
-        initial={{ opacity: 0, y: -20 }}
+        initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
+        transition={{ delay: 0.1, duration: 0.3 }}
+        className="mb-5 md:mb-7 flex"
       >
-        <span className="text-white/60 text-sm font-medium uppercase tracking-widest">
-          Bước {stepNumber}/5 — {STEP_LABELS[gradientIndex]}
+        <span
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 md:px-4 md:py-2 rounded-full text-xs md:text-sm font-semibold"
+          style={{ backgroundColor: config.bg, color: config.text }}
+        >
+          <span className="text-sm md:text-base">{config.emoji}</span>
+          <span>Bước {currentStep} — {config.label}</span>
         </span>
       </motion.div>
 
-      {/* Question */}
-      <motion.div
-        className="max-w-md mx-auto text-center mb-10"
-        initial={{ opacity: 0, y: 20 }}
+      {/* Question text */}
+      <motion.h2
+        initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
+        transition={{ delay: 0.18, duration: 0.35 }}
+        className="text-2xl md:text-3xl lg:text-4xl font-display font-bold text-gray-800 leading-snug mb-8 md:mb-10"
       >
-        <h2 className="text-2xl md:text-3xl font-bold text-white leading-snug">
-          {questionText}
-        </h2>
-      </motion.div>
+        {question.questionText}
+      </motion.h2>
 
-      {/* Answer options */}
-      <div className="w-full max-w-md space-y-3">
-        {answers.map((answer, idx) => (
-          <motion.button
-            key={answer.value}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 + idx * 0.1 }}
-            whileHover={{ scale: 1.02, x: 5 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => onAnswer(answer.value)}
-            className={`w-full text-left p-5 rounded-2xl transition-all duration-200 ${
-              selectedAnswer === answer.value
-                ? `bg-white text-gray-800 shadow-xl shadow-black/20`
-                : `bg-white/15 text-white hover:bg-white/25 backdrop-blur-sm border border-white/20`
-            }`}
-          >
-            <div className="flex items-center gap-3">
+      {/* Answer buttons */}
+      <div className="flex flex-col gap-3 md:gap-4 w-full">
+        {question.answers.map((answer, idx) => {
+          const isSelected = selectedAnswer === answer.value;
+
+          return (
+            <motion.button
+              key={answer.value}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.25 + idx * 0.08, duration: 0.3 }}
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => onAnswer(answer.value)}
+              className="w-full text-left p-4 md:p-5 rounded-2xl border-2 transition-colors duration-200 flex items-center gap-3 md:gap-4"
+              style={
+                isSelected
+                  ? {
+                      backgroundColor: config.bg,
+                      borderColor: config.fill,
+                      color: config.text,
+                    }
+                  : {
+                      backgroundColor: "#ffffff",
+                      borderColor: "#f3f4f6",
+                      color: "#374151",
+                    }
+              }
+            >
+              {/* Letter badge */}
               <span
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${
-                  selectedAnswer === answer.value
-                    ? `bg-gradient-to-br ${STEP_GRADIENTS[gradientIndex]} text-white`
-                    : "bg-white/20 text-white"
-                }`}
+                className="w-8 h-8 md:w-10 md:h-10 rounded-xl flex items-center justify-center text-sm md:text-base font-bold shrink-0"
+                style={
+                  isSelected
+                    ? { backgroundColor: config.fill, color: "#ffffff" }
+                    : { backgroundColor: "#f3f4f6", color: "#9ca3af" }
+                }
               >
                 {answer.value}
               </span>
-              <span className="text-base font-medium leading-snug">
+
+              {/* Answer text */}
+              <span className="text-base md:text-lg font-medium leading-snug">
                 {answer.label}
               </span>
-            </div>
-          </motion.button>
-        ))}
+            </motion.button>
+          );
+        })}
       </div>
     </motion.div>
   );

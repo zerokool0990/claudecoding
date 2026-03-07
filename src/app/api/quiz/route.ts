@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { QUESTIONS } from "@/lib/data/static-data";
+import prisma from "@/lib/db/prisma";
+import { isBirthdayMonth } from "@/lib/utils/zodiac";
 
 // GET /api/quiz - Get random questions for a quiz session
 export async function GET(request: NextRequest) {
@@ -10,8 +12,18 @@ export async function GET(request: NextRequest) {
     let preferredTheme: string | null = null;
 
     if (customerId) {
-      // On serverless, skip customer lookup (birthday theme is a nice-to-have)
-      preferredTheme = null;
+      try {
+        const customer = await prisma.customer.findUnique({
+          where: { id: customerId },
+          select: { dob: true },
+        });
+        if (customer?.dob && isBirthdayMonth(new Date(customer.dob))) {
+          preferredTheme = "tarot";
+        }
+      } catch {
+        // Non-critical: fall back to random theme if DB lookup fails
+        preferredTheme = null;
+      }
     }
 
     // Group questions by step
